@@ -1,4 +1,6 @@
 ## Use Case Diagram
+掃描周邊防偽驗證應該是NFT不是智能合約的工作  
+打卡領取數位足跡是任務卡領取福利，跟智能合約也無關
 ```mermaid
 flowchart LR
     %% 定義左側主動參與者
