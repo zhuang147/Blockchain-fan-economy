@@ -30,9 +30,8 @@
       <p class="text-stone-500 text-sm mb-6">過往活動紀錄。持有專屬通行證者，可進入後台花絮區域。</p>
 
       <div class="flex flex-col md:flex-row gap-6 bg-white/50 p-6 rounded-2xl border border-white">
-        <div class="w-full md:w-48 h-48 bg-stone-900 rounded-xl flex items-center justify-center text-white font-black italic shadow-inner relative overflow-hidden">
-          <div class="absolute inset-0 opacity-30 bg-[url('https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?auto=format&fit=crop&q=80')] bg-cover"></div>
-          <span class="relative z-10">會發光的安靜</span>
+        <div class="w-48 h-48 shrink-0 bg-stone-900 rounded-xl flex items-center justify-center text-white font-black italic shadow-inner relative overflow-hidden">
+          <div class="absolute inset-0 bg-[url('/glow.jpg')] bg-cover bg-center"></div>
         </div>
         
         <div class="flex-1 flex flex-col justify-center">
