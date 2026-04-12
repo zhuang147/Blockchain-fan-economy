@@ -9,20 +9,20 @@
 
       <div class="bg-stone-900 pt-8 pb-6 px-6 text-center text-white relative shrink-0">
         <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Valid Ticket</p>
-        <h3 class="text-xl font-black leading-tight">{{ ticket.name }}</h3>
+        <h3 class="text-xl font-black leading-tight">{{ displayTicketName }}</h3>
       </div>
 
       <div class="p-6 space-y-6 overflow-y-auto">
         
         <div class="text-center">
           <p class="text-xs text-stone-400 font-bold">持票探員 (Agent)</p>
-          <p class="text-lg font-black text-stone-900">{{ state.currentUser.name || state.currentUser.email }}</p>
+          <p class="text-lg font-black text-stone-900">{{ state.currentUser.name || state.currentUser.email || '讀取中...' }}</p>
         </div>
 
         <div class="flex flex-col items-center justify-center bg-stone-50 p-4 rounded-2xl border border-stone-100">
           <div class="w-40 h-40 bg-stone-900 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden shadow-inner">
             <div class="absolute inset-0 bg-[url('https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg')] bg-cover opacity-80 mix-blend-screen"></div>
-            <div class="absolute top-0 left-0 w-full h-1 bg-green-400 animate-[scan_2s_ease-in-out_infinite]"></div>
+            <div class="absolute top-0 left-0 w-full h-1 bg-green-400 scan-line"></div>
           </div>
           <p class="text-xs font-bold text-stone-500 flex items-center gap-1">
             <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
@@ -64,19 +64,61 @@
   </div>
 </template>
 
+<style scoped>
+.scan-line {
+  box-shadow: 0 0 8px #4ade80;
+  animation: scan-move 2s ease-in-out infinite;
+}
+
+@keyframes scan-move {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+/* 確保進場動畫也有定義 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+</style>
+
 <script setup>
-// (這裡保留你原本 TicketDetailModal.vue 的 <script setup> 邏輯，完全不用動！)
-import { ref, onMounted, onUnmounted, defineProps, defineEmits } from 'vue';
+import { ref, onMounted, onUnmounted, computed, defineProps, defineEmits } from 'vue';
 import { state, logAction } from '../store.js';
 import { supabase } from '../supabase.js';
 
-const props = defineProps({ ticket: Object });
+// ✨ 修改 1：允許傳入 Object 或 String，消除 Vue 警告
+const props = defineProps({ 
+  ticket: {
+    type: [Object, String],
+    required: true
+  }
+});
 const emit = defineEmits(['close']);
 
 const transferEmailInput = ref('');
 const generatedCodeDisplay = ref('');
 const refreshCountdown = ref(30);
 let timerInterval = null;
+
+// ✨ 修改 2：終極解析防護網，確保 currentTicket 絕對是個 Object
+const currentTicket = computed(() => {
+  if (typeof props.ticket === 'string') {
+    try {
+      return JSON.parse(props.ticket);
+    } catch (e) {
+      console.error("解析票券資料失敗:", e);
+      return {};
+    }
+  }
+  return props.ticket || {};
+});
+
+// 使用 computed 安全取值名稱
+const displayTicketName = computed(() => {
+  return currentTicket.value.name || currentTicket.value.ticket_name || '讀取中...';
+});
 
 onMounted(() => {
   timerInterval = setInterval(() => {
@@ -92,14 +134,28 @@ const copyCode = () => {
   alert("📋 候補碼已複製到剪貼簿！");
 };
 
-const removeTicketAndRefund = async () => {
-  const ticketPrice = Number(props.ticket.price);
+// ==========================================
+// 獨立出來的扣票與退款函數
+// ==========================================
+const removeTicketAndRefund = async (targetTicket) => {
+  if (!state.currentUser?.id) {
+    alert("⚠️ 帳號狀態未同步，請稍候再試或重新整理頁面。");
+    return false;
+  }
+
+  const ticketPrice = Number(targetTicket.price) || 0;
   const fee = ticketPrice * 0.05;
   const refundAmount = ticketPrice - fee;
 
-  const updatedTickets = state.myTickets.filter(t => t.serial !== props.ticket.serial);
-  const currentBalance = Number(state.balance) || 0;
-  const newBalance = currentBalance + refundAmount;
+  const safeSerial = targetTicket.serial || 'LEGACY-TICKET-NO-SERIAL';
+  
+  // ✨ 修改 3：過濾時，也要確保 state.myTickets 裡的每一張票都被正確解析
+  const updatedTickets = state.myTickets.filter(t => {
+    const parsedT = typeof t === 'string' ? JSON.parse(t) : t;
+    return (parsedT.serial || 'LEGACY-TICKET-NO-SERIAL') !== safeSerial;
+  });
+  
+  const newBalance = (Number(state.balance) || 0) + refundAmount;
 
   const { error } = await supabase
     .from('profiles')
@@ -107,7 +163,8 @@ const removeTicketAndRefund = async () => {
     .eq('id', state.currentUser.id);
 
   if (error) {
-    alert("⚠️ 同步資料庫失敗，請重試！");
+    console.error("更新資料庫失敗:", error);
+    alert("⚠️ 資料同步失敗，請確認網路狀態！");
     return false;
   }
 
@@ -116,58 +173,96 @@ const removeTicketAndRefund = async () => {
   return refundAmount;
 };
 
+// ==========================================
+// 【功能 1：官方退票】
+// ==========================================
 const handleRefund = async () => {
-  const fee = Number(props.ticket.price) * 0.05;
-  const refundAmount = Number(props.ticket.price) - fee;
-  if(!confirm(`【官方退票】\n票券：${props.ticket.name}\n將收取 5% 手續費 (${fee} PTS)\n您將退回：${refundAmount} PTS 到您的帳戶\n確定要退票嗎？`)) return;
+  const ticketData = currentTicket.value;
+  if (!ticketData.name && !ticketData.ticket_name) return;
 
-  const successAmount = await removeTicketAndRefund();
+  const ticketPrice = Number(ticketData.price) || 0;
+  const fee = ticketPrice * 0.05;
+  const refundAmount = ticketPrice - fee;
+  
+  if(!confirm(`【官方退票】\n票券：${displayTicketName.value}\n將收取 5% 手續費 (${fee} PTS)\n您將退回：${refundAmount} PTS 到帳戶\n確定要退票嗎？`)) return;
+
+  const successAmount = await removeTicketAndRefund(ticketData);
+  
   if (successAmount !== false) {
-    const { data: stockData } = await supabase.from('global_tickets').select('remaining').eq('ticket_name', props.ticket.name).single();
-    if (stockData) await supabase.from('global_tickets').update({ remaining: stockData.remaining + 1 }).eq('ticket_name', props.ticket.name);
+    const { data: stockData } = await supabase.from('global_tickets').select('remaining').eq('ticket_name', displayTicketName.value).single();
+    if (stockData) {
+      await supabase.from('global_tickets').update({ remaining: stockData.remaining + 1 }).eq('ticket_name', displayTicketName.value);
+    }
     
-    alert(`✅ 退票成功！已扣除 5% 手續費，成功將 ${successAmount} PTS 退回至您的帳戶。`);
-    logAction(`官方退票 ${props.ticket.serial}，退回 ${successAmount} PTS`, true);
+    alert(`✅ 退票成功！已成功將 ${successAmount} PTS 退回至您的帳戶。`);
+    logAction(`官方退票：序號 ${ticketData.serial || '無序號'}，退回 ${successAmount} PTS`, true);
     emit('close'); 
   }
 };
 
+// ==========================================
+// 【功能 2：指定親友轉讓】
+// ==========================================
 const handleTransfer = async () => {
+  const ticketData = currentTicket.value; // ✨ 使用解析後的資料
+  if (!ticketData.name && !ticketData.ticket_name) return alert("⚠️ 票券資料讀取中，請稍候...");
+
   const targetEmail = transferEmailInput.value.trim().toLowerCase();
+  
   if (!targetEmail) return alert("請輸入對方的信箱！");
   if (targetEmail === state.currentUser.email.toLowerCase()) return alert("❌ 不能轉讓給自己！");
 
-  const { data: targetUser, error: searchError } = await supabase.from('profiles').select('email').ilike('email', targetEmail).maybeSingle();
-  if (searchError || !targetUser) return alert("⚠️ 系統警告：無此帳戶！\n請確認親友是否已註冊，或信箱是否輸入正確。");
+  console.log(`🔍 正在資料庫中尋找探員信箱：${targetEmail}...`);
 
-  const fee = Number(props.ticket.price) * 0.05;
-  const refundAmount = Number(props.ticket.price) - fee;
-  if (!confirm(`【帳戶驗證成功】\n確定要轉讓給 ${targetUser.email} 嗎？\n這將收取 5% 手續費，退款 ${refundAmount} PTS。\n(對方須使用候補碼購買)`)) return;
+  const { data: targetUser, error: searchError } = await supabase
+    .from('profiles')
+    .select('email')
+    .ilike('email', targetEmail) 
+    .maybeSingle();
+
+  if (searchError) {
+    console.error("資料庫查詢發生錯誤:", searchError);
+    return alert("⚠️ 資料庫連線異常，請打開 F12 查看錯誤訊息。");
+  }
+
+  if (!targetUser) {
+    return alert("⚠️ 系統警告：無此帳戶！\n請確認親友是否已註冊，或信箱是否輸入正確。");
+  }
+
+  // ✨ 因為 ticketData 已經是物件了，這裡抓 price 絕對不會變成 NaN 或 null
+  const ticketPrice = Number(ticketData.price) || 0;
+  const fee = ticketPrice * 0.05;
+  const refundAmount = ticketPrice - fee;
+
+  if (!confirm(`【帳戶驗證成功】\n確定要將這張票轉讓給 ${targetUser.email} 嗎？\n這將收取 5% 手續費，您會先收到 ${refundAmount} PTS 的退款。\n(對方須於 24 小時內使用候補碼以原價購買)`)) return;
 
   const candidateCode = 'CODE-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-  const safeSerialNumber = props.ticket.serial || 'LEGACY-TICKET-NO-SERIAL';
+  const safeSerialNumber = ticketData.serial || 'LEGACY-TICKET-NO-SERIAL'; 
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); 
 
   const { error: codeError } = await supabase.from('ticket_codes').insert([{
-    code: candidateCode, target_email: targetUser.email, ticket_name: props.ticket.name,
-    original_price: Number(props.ticket.price), serial_number: safeSerialNumber, is_used: false
+    code: candidateCode,
+    target_email: targetUser.email,
+    ticket_name: displayTicketName.value, 
+    original_price: ticketPrice, // ✨ 這裡有確實填入數字了！
+    serial_number: safeSerialNumber,
+    is_used: false,
+    expires_at: expiresAt 
   }]);
 
-  if (codeError) return alert("⚠️ 產生候補碼失敗。");
+  if (codeError) {
+    console.error("寫入候補碼失敗的真正原因:", codeError.message, codeError.details); 
+    return alert("⚠️ 產生候補碼失敗，請打開 F12 查看錯誤訊息。");
+  }
 
-  const successAmount = await removeTicketAndRefund();
+  const successAmount = await removeTicketAndRefund(ticketData);
+
   if (successAmount !== false) {
     generatedCodeDisplay.value = candidateCode;
     transferEmailInput.value = ''; 
-    alert(`✅ 轉讓手續完成！\n已退回 ${successAmount} PTS。\n請複製畫面上的候補碼交給親友！`);
+    
+    alert(`✅ 轉讓手續完成！\n已退回 ${successAmount} PTS 至您的帳戶。\n請將畫面上的候補碼交給您的親友！`);
     logAction(`產生候補碼 ${candidateCode} 給 ${targetUser.email}`, true);
   }
 };
 </script>
-
-<style>
-@keyframes scan {
-  0% { transform: translateY(-100%); }
-  50% { transform: translateY(4000%); }
-  100% { transform: translateY(-100%); }
-}
-</style>

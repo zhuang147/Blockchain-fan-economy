@@ -9,22 +9,24 @@
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div 
-    v-for="ticket in state.myTickets" 
-    :key="ticket.serial" 
-    @click="activeTicket = ticket"
-    class="bg-stone-900 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group transition-all cursor-pointer hover:scale-[1.02] flex flex-col justify-between min-h-[140px]"
-  >
-    <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
-    
-    <div>
-      <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Verified NFT (SBT)</p>
-      <h3 class="text-xl font-black mb-1 leading-snug">{{ ticket.name }}</h3>
-    </div>
-    
-    <p class="text-[10px] text-green-400 mt-4 animate-pulse">● 點擊出示動態憑證與管理票券</p>
-  </div>
-</div>
+        <div 
+          v-for="ticket in state.myTickets" 
+          :key="ticket.serial" 
+          @click="openDetail(ticket)"
+          class="bg-stone-900 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden group transition-all cursor-pointer hover:scale-[1.02] flex flex-col justify-between min-h-[140px]"
+        >
+        <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all"></div>
+        <div>
+          <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Verified NFT (SBT)</p>
+          
+          <h3 class="text-xl font-black mb-1 leading-snug">
+            {{ ticket.name || ticket.ticket_name }}
+          </h3>
+          
+        </div>
+          <p class="text-[10px] text-green-400 mt-4 animate-pulse">● 點擊出示動態憑證與管理票券</p>
+        </div>
+      </div>
     </div>
 
     <div class="glass p-8 rounded-3xl border border-stone-200/50 shadow-sm">
@@ -60,22 +62,18 @@
         </div>
       </div>
     </div>
-
-    <TicketDetailModal 
-      v-if="activeTicket" 
-      :ticket="activeTicket" 
-      @close="activeTicket = null" 
-    />
-    
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue'; 
 import { state, logAction } from '../store.js';
-import TicketDetailModal from './TicketDetailModal.vue'; // 引入外部元件
 
-const activeTicket = ref(null);
+// 觸發全域 Modal 並傳入點選的票券資料
+const openDetail = (ticket) => {
+  state.selectedTicket = ticket; 
+  state.showTicketModal = true;  
+};
 
 // 判定是否持有特權票
 const hasLuminousSilence = computed(() => {

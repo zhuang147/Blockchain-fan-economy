@@ -1,5 +1,28 @@
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue'; // ✨ 記得加上 watch
 import { supabase } from './supabase.js';
+
+// ✨ 終極修復：安全解析函數，確保票券絕對是物件，而不是字串
+const safeParseTicket = (ticket) => {
+  if (typeof ticket === 'string') {
+    try {
+      return JSON.parse(ticket);
+    } catch (e) {
+      console.error("解析票券字串失敗:", e);
+      return ticket; 
+    }
+  }
+  return ticket;
+};
+
+// 🚀 嘗試從瀏覽器記憶讀取備份，讀取時順便用 safeParseTicket 確保格式正確
+let savedTickets = [];
+try {
+  const rawBackup = JSON.parse(localStorage.getItem('myTickets_backup')) || [];
+  savedTickets = rawBackup.map(safeParseTicket);
+} catch (e) {
+  savedTickets = [];
+}
+const savedTab = localStorage.getItem('activeTab_backup') || 'base';
 
 export const state = reactive({
   isLoggedIn: false,
@@ -9,13 +32,23 @@ export const state = reactive({
     name: '' 
   },
   balance: 0,
-  myTickets: [],
-  activeTab: 'base',
+  myTickets: savedTickets, // ✨ 預設先給本地備份的票券 (已過濾為純物件)
+  activeTab: savedTab,     // ✨ 預設停留留在上一次的頁籤
   currentBlock: 840000,
   showVideoModal: false,
   showTicketModal: false,
   selectedTicket: null,
   walletAddress: ''
+});
+
+// ✨ 無敵備份機制 1：只要 myTickets 有變動（例如剛買完票），立刻存進瀏覽器！
+watch(() => state.myTickets, (newVal) => {
+  localStorage.setItem('myTickets_backup', JSON.stringify(newVal));
+}, { deep: true });
+
+// ✨ 無敵備份機制 2：記住你目前在哪個分頁，F5 刷新不迷路
+watch(() => state.activeTab, (newVal) => {
+  localStorage.setItem('activeTab_backup', newVal);
 });
 
 // 🚀 強化的資料讀取函數：確保不會因為找不到資料而當機
@@ -55,9 +88,13 @@ export const fetchUserProfile = async (userId) => {
     // 3. 將資料同步到前端 state
     if (data) {
       state.balance = data.balance || 0;
-      state.myTickets = data.my_tickets || [];
+      
+      // ✨ 關鍵修復：抓下來的瞬間，如果是字串就自動 parse 回物件！
+      state.myTickets = (data.my_tickets || []).map(safeParseTicket);
+      
       state.currentUser.name = data.username || '探員';
-      console.log("✅ 資料同步完成", state.balance, state.myTickets);
+      state.isLoggedIn = true;
+      console.log("✅ 資料庫同步完成", state.balance, state.myTickets);
     }
   } catch (err) {
     console.error("❌ 讀取探員資料失敗，請檢查網路或 Supabase 設定:", err);

@@ -76,7 +76,6 @@
         </header>
 
         <main class="p-8 md:p-12 max-w-6xl mx-auto w-full">
-          
           <HomeTab v-if="state.activeTab === 'base'" />
           <TicketsTab v-else-if="state.activeTab === 'tickets'" />
           <MyTicketsTab v-else-if="state.activeTab === 'mytickets'" />
@@ -97,8 +96,16 @@
       </div>
     </div>
 
-    <VideoModal v-if="state.showVideoModal" />
-    <TicketDetailModal v-if="state.showTicketModal" />
+    <VideoModal 
+      v-if="state.showVideoModal" 
+      @close="state.showVideoModal = false" 
+    />
+
+    <TicketDetailModal 
+      v-if="state.showTicketModal && state.selectedTicket" 
+      :ticket="state.selectedTicket"
+      @close="closeTicketDetail"
+    />
     
   </div>
 </template>
@@ -108,7 +115,7 @@ import { ref, onMounted } from 'vue';
 import { state, logAction, fetchUserProfile } from './store.js';
 import { supabase } from './supabase.js';
 
-// 引入元件 (請確認路徑正確)
+// 引入組件
 import LoginBox from './components/LoginBox.vue';
 import HomeTab from './components/HomeTab.vue';
 import TicketsTab from './components/TicketsTab.vue';
@@ -120,34 +127,31 @@ import ProfileTab from './components/ProfileTab.vue';
 // 狀態計時器
 const currentTime = ref(new Date().toLocaleTimeString());
 
+// ✨ 新增：專門處理關閉票券視窗的函數
+const closeTicketDetail = () => {
+  state.showTicketModal = false;
+  state.selectedTicket = null;
+};
+
 // 登出函數
 const handleLogout = async () => {
   if(!confirm("確定要切斷連線並離開基地嗎？")) return;
-  
   try {
-    // 1. 告訴 Supabase 登出 (這會自動觸發底下的 onAuthStateChange)
     await supabase.auth.signOut();
     logAction("登出基地", true);
-    
-    // 2. 強制清空前端記憶
-    state.isLoggedIn = false; // 💡 這個一變成 false，畫面就會瞬間跳回 LoginBox
+    // 重設前端狀態
+    state.isLoggedIn = false;
     state.currentUser = { id: null, email: '', name: '' };
     state.balance = 0;
     state.myTickets = [];
-    
-    // 3. 清除瀏覽器快取 (但不包含 Supabase 自己控管的 token)
     localStorage.clear();
-    
     alert("👋 已成功登出，期待探員再次歸隊！");
-    
-    // 💡 刪除 window.location.reload()，讓 Vue 自己切換回登入組件
   } catch (error) {
-    console.error("登出發生錯誤:", error);
-    alert("登出失敗，請重試。");
+    console.error("登出錯誤:", error);
   }
 };
 
-// 錢包連線邏輯
+// 錢包連線
 const connectWallet = async () => {
   if (window.ethereum) {
     try {
@@ -158,23 +162,27 @@ const connectWallet = async () => {
       console.error("連線失敗", e);
     }
   } else {
-    alert("未偵測到加密錢包，請安裝 MetaMask 或相關外掛");
+    alert("請安裝 MetaMask 錢包");
   }
 };
 
-// 生命週期監控
+// 🚀 ✨ 關鍵：生命週期監控與資料恢復
 onMounted(async () => {
+  // 1. 啟動計時器
   setInterval(() => { currentTime.value = new Date().toLocaleTimeString(); }, 1000);
   setInterval(() => { state.currentBlock++; }, 4000);
 
+  // 2. 🚀 解決刷新跑掉的問題：手動檢查一次 Session
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
+    console.log("🔄 偵測到現有 Session，正在恢復資料...");
     state.isLoggedIn = true;
     state.currentUser.id = session.user.id;
     state.currentUser.email = session.user.email;
-    await fetchUserProfile(session.user.id);
+    await fetchUserProfile(session.user.id); // 從資料庫拉回 myTickets 和 balance
   }
 
+  // 3. 監聽登入/登出狀態變化
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       state.isLoggedIn = true;
@@ -192,35 +200,13 @@ onMounted(async () => {
 </script>
 
 <style>
-/* 全域跑馬燈動畫 */
-@keyframes marquee {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
-}
-.animate-marquee {
-  display: inline-block;
-  white-space: nowrap;
-  animation: marquee 20s linear infinite;
-}
-.marquee-container {
-  overflow: hidden;
-  background: white;
-}
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #e7e5e4;
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #d6d3d1;
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* 保持你原本的樣式不變... */
+@keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+.animate-marquee { display: inline-block; white-space: nowrap; animation: marquee 20s linear infinite; }
+.marquee-container { overflow: hidden; background: white; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e7e5e4; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #d6d3d1; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
