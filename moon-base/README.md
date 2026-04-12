@@ -57,3 +57,41 @@ Blockchain-fan-economy/
 │   ├── tailwind.config.js     # Tailwind CSS 相關設定
 │   └── vite.config.js         # Vite 打包相關設定
 └── README.md                  # 專案說明文件
+```
+
+## 🚀 本地端開發指南 (Local Setup)
+如果你想要在自己的電腦上運行這個專案，請按照以下步驟操作：
+
+1. 複製專案 (Clone the repository)
+```text
+git clone [https://github.com/zhuang147/Blockchain-fan-economy.git](https://github.com/zhuang147/Blockchain-fan-economy.git)
+cd Blockchain-fan-economy/moon-base
+```
+2. 安裝依賴套件 (Install dependencies)
+```text
+npm install
+```
+4. 設定環境變數 (Set up environment variables)
+在 moon-base 資料夾根目錄下建立一個 .env 檔案，並填入你的 Supabase 金鑰：
+
+```text
+VITE_SUPABASE_URL=你的_SUPABASE_專案網址
+VITE_SUPABASE_ANON_KEY=你的_SUPABASE_ANON_KEY
+```
+4. 啟動開發伺服器 (Run the development server)
+```text
+npm run dev
+```
+啟動後，開啟瀏覽器並前往終端機顯示的本地網址（通常為 http://localhost:5173/）即可預覽。
+
+---
+
+## ☁️ 部署指南 (Deployment)
+本專案已經設定好可直接部署至 Vercel：
+1. 在 Vercel 新增專案並綁定此 GitHub Repository。
+
+2. 將 Root Directory 設定為 moon-base。
+
+3. 在 Environment Variables 中填入上述的 VITE_SUPABASE_URL 與 VITE_SUPABASE_ANON_KEY。
+
+4. 點擊 Deploy，等待 CI/CD 完成自動部署。
