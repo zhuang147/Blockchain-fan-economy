@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+body { 
+    font-family: 'Noto Sans TC', sans-serif; 
+    -webkit-tap-highlight-color: transparent; 
+    /* ⚠️ 注意這裡：加上斜線 / 代表從 public 資料夾讀取 */
+    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('/123.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-color: #1c1917; 
+}
+
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+.active-tab { background-color: #1c1917 !important; color: #B59A7D !important; border-radius: 16px; }
+.glass { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(12px); }
+
+.card-gradient { background: linear-gradient(135deg, #1c1917 0%, #44403c 100%); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #B59A7D; border-radius: 10px; }
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@keyframes marquee {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee 25s linear infinite;
+}
+
+.marquee-container {
+    background-color: #1c1917; 
+    color: #B59A7D;           
+    padding: 10px 0;
+    overflow: hidden;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(181, 154, 125, 0.3);
+}
