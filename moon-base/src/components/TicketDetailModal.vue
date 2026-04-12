@@ -84,7 +84,7 @@
 </style>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, defineProps, defineEmits } from 'vue';
+import { ref, onMounted } from 'vue';
 import { state, logAction } from '../store.js';
 import { supabase } from '../supabase.js';
 
