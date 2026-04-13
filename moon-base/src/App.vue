@@ -104,6 +104,11 @@
       :ticket="state.selectedTicket"
       @close="closeTicketDetail"
     />
+
+    <DepositModal 
+      v-if="state.showDepositModal" 
+      @close="state.showDepositModal = false" 
+    />
     
   </div>
 </template>
@@ -122,6 +127,7 @@ import VideoModal from './components/VideoModal.vue';
 import TicketDetailModal from './components/TicketDetailModal.vue';
 import ProfileTab from './components/ProfileTab.vue';
 import ArchiveTab from './components/ArchiveTab.vue';
+import DepositModal from './components/DepositModal.vue';
 
 
 // 狀態計時器

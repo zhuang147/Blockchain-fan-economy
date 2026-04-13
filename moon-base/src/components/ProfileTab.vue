@@ -44,12 +44,12 @@
     <div class="bg-white p-6 md:p-8 rounded-3xl border border-stone-200 shadow-sm">
       <div class="flex justify-between items-end mb-6 border-b border-stone-100 pb-4">
         <div>
-          <h3 class="text-xl font-black text-stone-900">與月同行 (Check-in Record)</h3>
+          <h3 class="text-xl font-black text-stone-900">與月同行</h3>
           <p class="text-sm text-stone-500 font-bold mt-1">你的基地活躍紀錄，點亮了無數個夜晚。</p>
         </div>
         <div class="text-right">
           <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest">本月累計</p>
-          <p class="text-2xl font-black text-stone-900">{{ checkedInDays.length }} <span class="text-sm font-bold text-stone-500">天</span></p>
+          <p class="text-2xl font-black text-stone-900">{{ totalCheckedInDays }} <span class="text-sm font-bold text-stone-500">天</span></p>
         </div>
       </div>
 
@@ -61,11 +61,16 @@
         <div v-for="empty in 3" :key="'empty-'+empty"></div>
         
         <div v-for="date in 30" :key="date" class="aspect-square relative flex items-center justify-center rounded-xl border border-stone-100 bg-stone-50 overflow-hidden">
-          <span v-if="!checkedInDays.includes(date)" class="text-stone-400 font-bold z-10">{{ date }}</span>
           
-          <div v-else class="absolute inset-1 bg-stone-900 rounded-full flex items-center justify-center shadow-inner z-20">
+          <div v-if="isDateCheckedIn(date)" class="absolute inset-1 bg-stone-900 rounded-full flex items-center justify-center shadow-inner z-20 transition-all duration-500 animate-[fadeIn_0.3s_ease-out]">
             <span class="text-yellow-100 text-lg md:text-2xl drop-shadow-[0_0_8px_rgba(254,240,138,0.8)]">🌙</span>
           </div>
+
+          <div v-else class="relative w-full h-full flex items-center justify-center">
+            <span class="text-stone-400 font-bold z-10">{{ date }}</span>
+            <div v-if="date === todayDate" class="absolute inset-0 border-2 border-stone-300 rounded-xl"></div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -95,6 +100,7 @@ const updateNickname = async () => {
     alert("暱稱不能為空！");
     return;
   }
+  // 提醒：確認你的 Supabase profiles 資料表裡的欄位名稱是 username 哦！
   const { error } = await supabase.from('profiles').update({ username: newName.value }).eq('id', state.currentUser.id);
   if (error) alert("更新失敗：" + error.message);
   else {
@@ -105,11 +111,40 @@ const updateNickname = async () => {
 
 const isAdmin = computed(() => state.currentUser.email === 'admin@moon.com');
 
-// === 模擬簽到月曆資料 ===
-const checkedInDays = ref([1, 2, 4, 5, 8, 10, 11, 12, 13]); 
-</script>
+// === 簽到月曆資料 ===
 
-<style scoped>
+// 1. 保留這個：監聽全域狀態，判斷今天是否已經按過簽到
+const hasCheckedIn = computed(() => {
+  return state.lastCheckInDate === new Date().toDateString();
+});
+
+// 2. 歷史簽到紀錄 (如果你還沒串接資料庫，可以先放幾個假數字測試，例如 2號、5號)
+const checkedInDays = ref([2, 5, 8]); 
+
+// 3. 取得今天是幾號
+const todayDate = new Date().getDate(); 
+
+// 4. 判斷這格日期要不要顯示月亮 🌙
+const isDateCheckedIn = (date) => {
+  // 如果這格剛好是「今天」，而且已經簽到了 -> 顯示月亮
+  if (date === todayDate && hasCheckedIn.value) {
+    return true;
+  }
+  // 或者是過去的紀錄有這天 -> 顯示月亮
+  return checkedInDays.value?.includes(date);
+};
+
+// 5. 計算這個月累計了幾天 (右上角顯示的數字)
+const totalCheckedInDays = computed(() => {
+  let count = checkedInDays.value?.length || 0;
+  // 如果今天有簽到，且歷史陣列還沒算到今天，就額外 +1
+  if (hasCheckedIn.value && !checkedInDays.value?.includes(todayDate)) {
+    count += 1;
+  }
+  return count;
+});
+
+</script><style scoped>
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

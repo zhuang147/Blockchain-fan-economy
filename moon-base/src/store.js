@@ -32,21 +32,29 @@ export const state = reactive({
     name: '' 
   },
   balance: 0,
-  myTickets: savedTickets, // ✨ 預設先給本地備份的票券 (已過濾為純物件)
-  activeTab: savedTab,     // ✨ 預設停留留在上一次的頁籤
+  myTickets: savedTickets, // 預設先給本地備份的票券 (已過濾為純物件)
+  activeTab: savedTab,     // 預設停留留在上一次的頁籤
   currentBlock: 840000,
   showVideoModal: false,
   showTicketModal: false,
+  showDepositModal: false,
   selectedTicket: null,
-  walletAddress: ''
+  walletAddress: '',
+  lastCheckInDate: null // 這樣寫完全正確！
 });
 
-// ✨ 無敵備份機制 1：只要 myTickets 有變動（例如剛買完票），立刻存進瀏覽器！
+export const isTodayCheckedIn = () => {
+  if (!state.lastCheckInDate) return false;
+  const today = new Date().toLocaleDateString();
+  return state.lastCheckInDate === today;
+};
+
+// 備份機制 1：只要 myTickets 有變動（例如剛買完票），立刻存進瀏覽器！
 watch(() => state.myTickets, (newVal) => {
   localStorage.setItem('myTickets_backup', JSON.stringify(newVal));
 }, { deep: true });
 
-// ✨ 無敵備份機制 2：記住你目前在哪個分頁，F5 刷新不迷路
+// 備份機制 2：記住你目前在哪個分頁，F5 刷新不迷路
 watch(() => state.activeTab, (newVal) => {
   localStorage.setItem('activeTab_backup', newVal);
 });
