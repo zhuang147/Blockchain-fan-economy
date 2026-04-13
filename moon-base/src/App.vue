@@ -76,24 +76,6 @@
           </div>
         </header>
 
-        <main class="p-8 md:p-12 max-w-6xl mx-auto w-full">
-          <HomeTab v-if="state.activeTab === 'base'" @go-to-event="openEventDetail" />
-          <TicketsTab v-else-if="state.activeTab === 'tickets'" />
-          <MyTicketsTab v-else-if="state.activeTab === 'mytickets'" @go-to-event="openEventDetail" />
-          <ProfileTab v-else-if="state.activeTab === 'profile'" />
-          
-          <ArchiveTab v-else-if="state.activeTab === 'archive'" />
-          
-          <EventDetail 
-            v-else-if="state.activeTab === 'eventDetail'" 
-            :eventData="selectedEventData" 
-            @back="state.activeTab = 'base'" 
-          />
-          
-          <div v-else class="text-left animate-[fadeIn_0.3s_ease-out] glass p-10 rounded-3xl border border-stone-200">
-            </div>
-        </main>
-
         <footer class="p-10 text-center opacity-20 text-[10px] font-black tracking-[0.5em] uppercase">
           Moon Base Alpha - All Rights Reserved 2026
         </footer>
@@ -127,7 +109,6 @@ import MyTicketsTab from './components/MyTicketsTab.vue';
 import VideoModal from './components/VideoModal.vue';
 import TicketDetailModal from './components/TicketDetailModal.vue';
 import ProfileTab from './components/ProfileTab.vue';
-import EventDetail from './components/EventDetail.vue';
 import ArchiveTab from './components/ArchiveTab.vue';
 
 
@@ -137,11 +118,6 @@ const currentTime = ref(new Date().toLocaleTimeString());
 // 儲存使用者點擊了哪一場活動
 const selectedEventData = ref(null);
 
-// 開啟活動詳情頁的函數
-const openEventDetail = (eventData) => {
-  selectedEventData.value = eventData;
-  state.activeTab = 'eventDetail'; // 切換到隱藏的詳情頁
-};
 
 // 新增：專門處理關閉票券視窗的函數
 const closeTicketDetail = () => {
