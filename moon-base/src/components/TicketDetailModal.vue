@@ -84,11 +84,11 @@
 </style>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue'; // ✨ 把 defineProps 和 defineEmits 拿掉，避免報錯
 import { state, logAction } from '../store.js';
 import { supabase } from '../supabase.js';
 
-// ✨ 修改 1：允許傳入 Object 或 String，消除 Vue 警告
+// ✨ 允許傳入 Object 或 String，消除 Vue 警告
 const props = defineProps({ 
   ticket: {
     type: [Object, String],
@@ -102,7 +102,7 @@ const generatedCodeDisplay = ref('');
 const refreshCountdown = ref(30);
 let timerInterval = null;
 
-// ✨ 修改 2：終極解析防護網，確保 currentTicket 絕對是個 Object
+// ✨ 終極解析防護網，確保 currentTicket 絕對是個 Object
 const currentTicket = computed(() => {
   if (typeof props.ticket === 'string') {
     try {
@@ -149,7 +149,6 @@ const removeTicketAndRefund = async (targetTicket) => {
 
   const safeSerial = targetTicket.serial || 'LEGACY-TICKET-NO-SERIAL';
   
-  // ✨ 修改 3：過濾時，也要確保 state.myTickets 裡的每一張票都被正確解析
   const updatedTickets = state.myTickets.filter(t => {
     const parsedT = typeof t === 'string' ? JSON.parse(t) : t;
     return (parsedT.serial || 'LEGACY-TICKET-NO-SERIAL') !== safeSerial;
@@ -204,7 +203,7 @@ const handleRefund = async () => {
 // 【功能 2：指定親友轉讓】
 // ==========================================
 const handleTransfer = async () => {
-  const ticketData = currentTicket.value; // ✨ 使用解析後的資料
+  const ticketData = currentTicket.value; 
   if (!ticketData.name && !ticketData.ticket_name) return alert("⚠️ 票券資料讀取中，請稍候...");
 
   const targetEmail = transferEmailInput.value.trim().toLowerCase();
@@ -221,7 +220,6 @@ const handleTransfer = async () => {
     .maybeSingle();
 
   if (searchError) {
-    console.error("資料庫查詢發生錯誤:", searchError);
     return alert("⚠️ 資料庫連線異常，請打開 F12 查看錯誤訊息。");
   }
 
@@ -229,7 +227,6 @@ const handleTransfer = async () => {
     return alert("⚠️ 系統警告：無此帳戶！\n請確認親友是否已註冊，或信箱是否輸入正確。");
   }
 
-  // ✨ 因為 ticketData 已經是物件了，這裡抓 price 絕對不會變成 NaN 或 null
   const ticketPrice = Number(ticketData.price) || 0;
   const fee = ticketPrice * 0.05;
   const refundAmount = ticketPrice - fee;
@@ -244,14 +241,14 @@ const handleTransfer = async () => {
     code: candidateCode,
     target_email: targetUser.email,
     ticket_name: displayTicketName.value, 
-    original_price: ticketPrice, // ✨ 這裡有確實填入數字了！
+    original_price: ticketPrice, 
     serial_number: safeSerialNumber,
     is_used: false,
     expires_at: expiresAt 
   }]);
 
   if (codeError) {
-    console.error("寫入候補碼失敗的真正原因:", codeError.message, codeError.details); 
+    console.error("寫入候補碼失敗:", codeError.message); 
     return alert("⚠️ 產生候補碼失敗，請打開 F12 查看錯誤訊息。");
   }
 
