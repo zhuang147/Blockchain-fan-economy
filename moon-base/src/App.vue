@@ -76,6 +76,18 @@
           </div>
         </header>
 
+        <main class="flex-1 p-6 md:p-10 relative">
+          <HomeTab v-if="state.activeTab === 'base'" />
+          <TicketsTab v-if="state.activeTab === 'tickets'" />
+          <MyTicketsTab v-if="state.activeTab === 'mytickets'" />
+          <ArchiveTab v-if="state.activeTab === 'archive'" />
+          <ProfileTab v-if="state.activeTab === 'profile'" />
+          
+          <div v-if="state.activeTab === 'monitor'" class="flex items-center justify-center h-full text-stone-400 font-black italic">
+            節點監控系統建置中...
+          </div>
+        </main>
+
         <footer class="p-10 text-center opacity-20 text-[10px] font-black tracking-[0.5em] uppercase">
           Moon Base Alpha - All Rights Reserved 2026
         </footer>
