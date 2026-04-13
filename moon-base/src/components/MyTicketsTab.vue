@@ -12,7 +12,7 @@
         
         <div 
           v-for="ticket in state.myTickets" 
-          :key="ticket.serial" 
+          :key="ticket.id" 
           @click="openDetail(ticket)"
           class="ticket-card bg-stone-900 rounded-2xl text-white shadow-xl relative overflow-hidden group transition-all cursor-pointer hover:scale-[1.02] flex min-h-[160px]"
         >
@@ -46,39 +46,6 @@
         </div>
       </div>
     </div>
-
-    <div class="glass p-8 rounded-3xl border border-stone-200/50 shadow-sm">
-      <h2 class="text-xl font-black text-stone-900 mb-2">🗂️ 基地典藏館 (Archive)</h2>
-      <p class="text-stone-500 text-sm mb-6">過往活動紀錄。持有專屬通行證者，可進入後台花絮區域。</p>
-
-      <div class="flex flex-col md:flex-row gap-6 bg-white/50 p-6 rounded-2xl border border-white">
-        <div class="w-48 h-48 shrink-0 bg-stone-900 rounded-xl flex items-center justify-center text-white font-black italic shadow-inner relative overflow-hidden">
-          <div class="absolute inset-0 bg-[url('/glow.jpg')] bg-cover bg-center"></div>
-        </div>
-        
-        <div class="flex-1 flex flex-col justify-center">
-          <div class="flex items-center gap-3 mb-2">
-            <h3 class="text-xl font-black text-stone-900">《會發光的安靜》巡迴演唱會</h3>
-            <span class="px-2 py-1 bg-stone-200 text-stone-500 text-[10px] font-black rounded-md">已結束</span>
-          </div>
-          <p class="text-sm text-stone-600 font-bold mb-4 leading-relaxed">
-            月亮忘了關燈 2026 巡迴演出。在這場安靜的革命中，我們用光影與頻率，找到了彼此的座標。
-          </p>
-          
-          <div v-if="hasLuminousSilence" class="bg-green-50 p-4 rounded-xl border border-green-200 shadow-inner">
-            <p class="text-green-700 font-black text-sm mb-2">✅ 已驗證持有權限：您可存取隱藏內容</p>
-            <div class="flex gap-2">
-              <button @click="openVideo" class="bg-stone-900 text-white text-xs font-black px-4 py-2 rounded-lg hover:bg-stone-800 transition-all">觀看幕後花絮</button>
-              <button class="bg-white border border-stone-200 text-stone-700 text-xs font-black px-4 py-2 rounded-lg hover:bg-stone-50 transition-all">下載實況音檔</button>
-            </div>
-          </div>
-          <div v-else class="bg-stone-100 p-4 rounded-xl border border-stone-200">
-            <p class="text-stone-500 font-bold text-sm mb-2">🔒 未持有此活動通行證，僅供檢視基本資訊。</p>
-            <button disabled class="bg-stone-300 text-stone-500 text-xs font-black px-4 py-2 rounded-lg cursor-not-allowed">內容已鎖定</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -101,7 +68,13 @@ const getDisplayTicketName = (ticket) => {
   return parsedTicket.name || parsedTicket.ticket_name || '';
 };
 
-// ✨ 動態決定圖片路徑的函數 (已經改成 jpg)
+// 函數有沒有正確改變 state
+const openDetail = (ticket) => {
+  state.selectedTicket = ticket; 
+  state.showTicketModal = true; // 確認這個變數名稱跟你 Modal 用的是一樣的
+};
+
+// 動態決定圖片路徑的函數 
 const getTicketImg = (ticket) => {
   const name = getDisplayTicketName(ticket);
   if (name.includes('VIP')) {
@@ -111,24 +84,7 @@ const getTicketImg = (ticket) => {
   }
 };
 
-const openDetail = (ticket) => {
-  state.selectedTicket = ticket; 
-  state.showTicketModal = true;  
-};
 
-const hasLuminousSilence = computed(() => {
-  return state.myTickets.some(t => {
-    const name = getDisplayTicketName(t);
-    return name && (name.includes('VIP') || name.includes('一般票') || name.includes('會發光的安靜'));
-  });
-});
-
-const openVideo = () => {
-  if (hasLuminousSilence.value) {
-    state.showVideoModal = true; 
-    logAction("進入後台花絮區", true);
-  }
-};
 </script>
 
 <style scoped>

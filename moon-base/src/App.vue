@@ -26,6 +26,7 @@
                 { id: 'base', label: '🌕 首頁' },
                 { id: 'tickets', label: '🎫 數位門票' },
                 { id: 'mytickets', label: '💎 我的資產' },
+                { id: 'archive', label: '🎬 基地典藏館' }, 
                 { id: 'profile', label: '👤 個人中心' },
                 { id: 'monitor', label: '⛓️ 監控節點' }
               ]" 
@@ -76,18 +77,21 @@
         </header>
 
         <main class="p-8 md:p-12 max-w-6xl mx-auto w-full">
-          <HomeTab v-if="state.activeTab === 'base'" />
+          <HomeTab v-if="state.activeTab === 'base'" @go-to-event="openEventDetail" />
           <TicketsTab v-else-if="state.activeTab === 'tickets'" />
-          <MyTicketsTab v-else-if="state.activeTab === 'mytickets'" />
+          <MyTicketsTab v-else-if="state.activeTab === 'mytickets'" @go-to-event="openEventDetail" />
           <ProfileTab v-else-if="state.activeTab === 'profile'" />
           
+          <ArchiveTab v-else-if="state.activeTab === 'archive'" />
+          
+          <EventDetail 
+            v-else-if="state.activeTab === 'eventDetail'" 
+            :eventData="selectedEventData" 
+            @back="state.activeTab = 'base'" 
+          />
+          
           <div v-else class="text-left animate-[fadeIn_0.3s_ease-out] glass p-10 rounded-3xl border border-stone-200">
-            <h2 class="text-2xl font-black text-stone-900 italic uppercase">Section: {{ state.activeTab }}</h2>
-            <div class="mt-6 flex items-center gap-3">
-              <span class="w-3 h-3 bg-yellow-500 rounded-full animate-ping"></span>
-              <p class="text-stone-500 font-bold">該區域模組正在同步建置中，請稍後再試 🛠️ ...</p>
             </div>
-          </div>
         </main>
 
         <footer class="p-10 text-center opacity-20 text-[10px] font-black tracking-[0.5em] uppercase">
@@ -123,11 +127,23 @@ import MyTicketsTab from './components/MyTicketsTab.vue';
 import VideoModal from './components/VideoModal.vue';
 import TicketDetailModal from './components/TicketDetailModal.vue';
 import ProfileTab from './components/ProfileTab.vue';
+import EventDetail from './components/EventDetail.vue';
+import ArchiveTab from './components/ArchiveTab.vue';
+
 
 // 狀態計時器
 const currentTime = ref(new Date().toLocaleTimeString());
 
-// ✨ 新增：專門處理關閉票券視窗的函數
+// 儲存使用者點擊了哪一場活動
+const selectedEventData = ref(null);
+
+// 開啟活動詳情頁的函數
+const openEventDetail = (eventData) => {
+  selectedEventData.value = eventData;
+  state.activeTab = 'eventDetail'; // 切換到隱藏的詳情頁
+};
+
+// 新增：專門處理關閉票券視窗的函數
 const closeTicketDetail = () => {
   state.showTicketModal = false;
   state.selectedTicket = null;
