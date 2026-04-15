@@ -27,8 +27,8 @@
                 { id: 'tickets', label: '🎫 數位門票' },
                 { id: 'mytickets', label: '💎 我的資產' },
                 { id: 'archive', label: '🎬 基地典藏館' }, 
-                { id: 'profile', label: '👤 個人中心' },
-                { id: 'monitor', label: '⛓️ 監控節點' }
+                { id: 'livefeed', label: '⛓️ Live Feed' },                
+                { id: 'profile', label: '👤 個人中心' }
               ]" 
               :key="tab.id"
               @click="state.activeTab = tab.id" 
@@ -81,11 +81,8 @@
           <TicketsTab v-if="state.activeTab === 'tickets'" />
           <MyTicketsTab v-if="state.activeTab === 'mytickets'" />
           <ArchiveTab v-if="state.activeTab === 'archive'" />
+          <LiveFeed v-if="state.activeTab === 'livefeed'" />
           <ProfileTab v-if="state.activeTab === 'profile'" />
-          
-          <div v-if="state.activeTab === 'monitor'" class="flex items-center justify-center h-full text-stone-400 font-black italic">
-            節點監控系統建置中...
-          </div>
         </main>
 
         <footer class="p-10 text-center opacity-20 text-[10px] font-black tracking-[0.5em] uppercase">
@@ -128,6 +125,7 @@ import TicketDetailModal from './components/TicketDetailModal.vue';
 import ProfileTab from './components/ProfileTab.vue';
 import ArchiveTab from './components/ArchiveTab.vue';
 import DepositModal from './components/DepositModal.vue';
+import LiveFeed from './components/LiveFeed.vue';
 
 
 // 狀態計時器

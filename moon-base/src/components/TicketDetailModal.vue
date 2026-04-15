@@ -261,5 +261,6 @@ const handleTransfer = async () => {
     alert(`✅ 轉讓手續完成！\n已退回 ${successAmount} PTS 至您的帳戶。\n請將畫面上的候補碼交給您的親友！`);
     logAction(`產生候補碼 ${candidateCode} 給 ${targetUser.email}`, true);
   }
+  
 };
 </script>

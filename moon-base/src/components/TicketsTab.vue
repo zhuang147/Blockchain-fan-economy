@@ -129,11 +129,11 @@ const buyTicket = async (ticket, quantity, isRedeeming = false, legacySerial = n
 
   if (!confirm(`確定花費 ${totalPrice} PTS ${isRedeeming ? '兌換轉讓票' : '購買'} ${quantity} 張「${ticket.name}」嗎？`)) return false;
 
-  // 2. 建立新的票券物件陣列 (根據購買張數迴圈生成)
+  // 2. 建立新的票券物件陣列
   const newTickets = [];
   for (let i = 0; i < quantity; i++) {
     newTickets.push({
-      serial: legacySerial || generateSerialNumber(), // 如果有轉讓序號就繼承，沒有就創新的
+      serial: legacySerial || generateSerialNumber(),
       name: ticket.name,
       price: ticket.price,
       acquired_at: new Date().toISOString()
@@ -157,11 +157,21 @@ const buyTicket = async (ticket, quantity, isRedeeming = false, legacySerial = n
     // 如果是一般購買，扣除官方票池庫存
     if (!isRedeeming) {
       await updateGlobalStock(ticket.name, quantity);
+      
+      // 🌟 [新增功能] 發送一般購買的廣播訊息
+      await supabase.from('feed_messages').insert([
+        {
+          user_id: state.currentUser.id,
+          type: 'transaction',
+          content: `探員 ${state.currentUser.name} 購買了 ${quantity} 張「${ticket.name}」門票`,
+          metadata: { ticket_name: ticket.name, quantity }
+        }
+      ]);
     }
     
     logAction(`[SYSTEM] 成功取得 ${quantity} 張 ${ticket.name}`, true);
     alert(`🎉 交易成功！已存入您的數位資產中。`);
-    state.activeTab = 'mytickets'; // 自動跳轉至我的票匣
+    state.activeTab = 'mytickets'; 
     return true;
   } else {
     alert("⚠️ 同步失敗，請稍後再試。");
@@ -174,7 +184,7 @@ const handleCodeRedeem = async () => {
   const code = inputCode.value.toUpperCase().trim();
   if (!code) return;
 
-  // 1. 尋找候補碼
+  // 1. 尋找候補碼 (這裡假設 ticket_codes 表有儲存 seller_name)
   const { data, error } = await supabase.from('ticket_codes').select('*').eq('code', code).single();
 
   if (error || !data) return alert("❌ 找不到此候補碼。");
@@ -191,30 +201,41 @@ const handleCodeRedeem = async () => {
 
   if (hoursDiff > 24) {
     alert("⚠️ 您的候補碼已超過 24 小時未兌換！\n此轉讓票券已失效，並流回官方釋出票池中。");
-    
-    // 將代碼作廢
     await supabase.from('ticket_codes').update({ is_used: true }).eq('code', code);
-    
-    // 將 1 張票還給官方票池 (扣除 -1 相當於 +1)
     await updateGlobalStock(data.ticket_name, -1); 
-    
     inputCode.value = '';
     return;
   }
 
   // 3. 準備票券資料進行購買
-  // 因為是轉讓，我們根據資料庫紀錄的原始價格來建立暫時的 ticket 物件
   const transferTicketData = { 
     name: data.ticket_name, 
     price: data.original_price 
   };
 
-  // 呼叫購買邏輯 (isRedeeming = true，不扣官方庫存，並帶入原本的 serial_number)
+  // 呼叫購買邏輯
   const isSuccess = await buyTicket(transferTicketData, 1, true, data.serial_number);
 
   if (isSuccess) {
-    // 購買成功後，將候補碼標記為已使用
+    // 4. 購買成功後，標記候補碼為已使用
     await supabase.from('ticket_codes').update({ is_used: true }).eq('code', code);
+    
+    // 🌟 [新增功能] 發送候補碼兌換成功（轉讓成功）的廣播訊息
+    // 註：data.seller_name 來自 ticket_codes 資料表
+    const seller = data.seller_name || '資深探員';
+    await supabase.from('feed_messages').insert([
+      {
+        user_id: state.currentUser.id,
+        type: 'transaction',
+        content: `探員 ${state.currentUser.name} 使用探員 ${seller} 的候補碼成功購買「${data.ticket_name}」門票`,
+        metadata: { 
+          buyer: state.currentUser.name, 
+          seller: seller, 
+          ticket_name: data.ticket_name 
+        }
+      }
+    ]);
+
     inputCode.value = '';
   }
 };

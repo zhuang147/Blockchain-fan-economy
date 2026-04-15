@@ -40,7 +40,8 @@ export const state = reactive({
   showDepositModal: false,
   selectedTicket: null,
   walletAddress: '',
-  lastCheckInDate: null // 這樣寫完全正確！
+  lastCheckInDate: null,
+  feedMessages: []
 });
 
 export const isTodayCheckedIn = () => {

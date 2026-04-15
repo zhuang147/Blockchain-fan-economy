@@ -261,6 +261,28 @@ const saveDiary = () => {
   alert(`✅ 日記已暫時記錄！狀態：${diaryData.value.isPublic ? '公開發佈' : '僅限自己可見'}`);
   closeDiaryModal();
 };
+
+const saveMemoir = async (title, content, isPublic) => {
+  // 1. 存入個人回憶錄資料庫
+  const { data, error } = await supabase.from('memoirs').insert([
+    { user_id: state.currentUser.id, title, content, is_public: isPublic }
+  ]);
+
+  if (error) return alert("儲存失敗");
+
+  // 2. 如果使用者勾選「公開」，同步發送到 LIVE FEED
+  if (isPublic) {
+    await supabase.from('feed_messages').insert([
+      {
+        user_id: state.currentUser.id,
+        type: 'memoir',
+        content: `【回憶錄：${title}】\n${content}`
+      }
+    ]);
+  }
+  
+  alert(isPublic ? "已公開發佈至 Live Feed！" : "已收藏至個人典藏館。");
+};
 </script>
 
 <style scoped>
