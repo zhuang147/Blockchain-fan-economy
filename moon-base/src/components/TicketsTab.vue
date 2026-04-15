@@ -222,15 +222,18 @@ const handleCodeRedeem = async () => {
     
     // 🌟 [新增功能] 發送候補碼兌換成功（轉讓成功）的廣播訊息
     // 註：data.seller_name 來自 ticket_codes 資料表
-    const seller = data.seller_name || '資深探員';
+    // 🌟 修正這裡：直接使用資料庫紀錄的賣家暱稱
+    // 如果 data.seller_name 真的沒抓到，才退而求其次顯示 "神秘探員"
+    const sellerNickname = data.seller_name || "未知探員";
+
     await supabase.from('feed_messages').insert([
       {
         user_id: state.currentUser.id,
         type: 'transaction',
-        content: `探員 ${state.currentUser.name} 使用探員 ${seller} 的候補碼成功購買「${data.ticket_name}」門票`,
+        content: `探員 ${state.currentUser.name} 使用探員 ${sellerNickname} 的候補碼成功購買「${data.ticket_name}」門票`,
         metadata: { 
           buyer: state.currentUser.name, 
-          seller: seller, 
+          seller: sellerNickname, 
           ticket_name: data.ticket_name 
         }
       }

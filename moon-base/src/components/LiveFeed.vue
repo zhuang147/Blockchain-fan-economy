@@ -175,6 +175,7 @@ const sendMsg = async () => {
       user_id: state.currentUser.id,
       type: 'chat',
       content: inputMsg.value,
+      seller_name: state.currentUser.name,
     }
   ]);
 
